@@ -23,7 +23,7 @@ const HouseRatingSystem = () => {
   const [uploadError, setUploadError] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingHouse, setEditingHouse] = useState<House | null>(null)
-  const [budgetLimit, setBudgetLimit] = useState(600000)
+  const [budgetLimit, setBudgetLimit] = useState(60000)
 
   const emptyHouse = {
     id: uuidV4(),
@@ -53,7 +53,7 @@ const HouseRatingSystem = () => {
   }
 
   const saveHouseToDB = async (house: House) => {
-    const { data } = await supabase.from('houses').insert(house)
+    const { data } = await supabase.from('houses').insert(house).select()
     if (data && data?.length > 0) {
       setHouses((prev) => [...prev, data[0]])
       return true
@@ -62,7 +62,11 @@ const HouseRatingSystem = () => {
   }
 
   const updateHouseInDB = async (id: string, house: House) => {
-    const { data } = await supabase.from('houses').update(house).eq('id', id)
+    const { data } = await supabase
+      .from('houses')
+      .update(house)
+      .eq('id', id)
+      .select()
     if (data && data?.length > 0) {
       setHouses((prev) => prev.map((h) => (h.id === id ? data[0] : h)))
       return true
@@ -79,8 +83,8 @@ const HouseRatingSystem = () => {
     return false
   }
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0]
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event?.target?.files?.[0]
     if (!file) return
 
     setUploadError('')
@@ -91,17 +95,21 @@ const HouseRatingSystem = () => {
     }
 
     const reader = new FileReader()
-    reader.onload = async (e) => {
+    reader.onload = async (e: ProgressEvent<FileReader>) => {
       try {
-        const text = e.target.result
-        const parsed = Papa.parse(text, {
+        const text = e?.target?.result
+        if (typeof text !== 'string') {
+          setUploadError('Failed to read file content')
+          return
+        }
+        const parsed = Papa.parse<House>(text, {
           header: true,
           dynamicTyping: true,
           skipEmptyLines: true
         })
 
         const cleanedHouses = parsed.data.filter(
-          (house) => house.address && house.address.trim()
+          (house: House) => house.address && house.address.trim() !== ''
         )
 
         if (cleanedHouses.length === 0) {
@@ -188,7 +196,7 @@ const HouseRatingSystem = () => {
         if (sortBy === 'score') return b.calculatedScore - a.calculatedScore
         if (sortBy === 'price') return a?.price - b?.price
         if (sortBy === 'distance') {
-          const getDistance = (h) => {
+          const getDistance = (h: House) => {
             const str = (h.distance || '').toString()
             const match = str.match(/(\d+)/)
             return match ? parseInt(match[1]) : 99
@@ -199,12 +207,14 @@ const HouseRatingSystem = () => {
       })
   }, [houses, weights, sortBy])
 
-  const handleWeightChange = (key, value) => {
+  const handleWeightChange = (key: string, value: string) => {
     setWeights((prev) => ({ ...prev, [key]: parseFloat(value) }))
   }
 
-  const handleFormChange = (field, value) => {
-    console.log('Form change:', field, value)
+  const handleFormChange = (
+    field: string,
+    value: string | number | boolean
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -220,7 +230,8 @@ const HouseRatingSystem = () => {
       setHouses((prev) => [...prev, { ...formData }])
     }
 
-    setFormData(emptyHouse)
+    const newEmptyHouse = { ...emptyHouse, id: uuidV4() }
+    setFormData(newEmptyHouse)
     setShowAddForm(false)
   }
 
@@ -403,28 +414,28 @@ const HouseRatingSystem = () => {
                   type='text'
                   placeholder='Address'
                   value={formData.address}
-                  onChange={(e) => handleFormChange('address', e.target.value)}
+                  onChange={(e) => handleFormChange('Address', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='text'
                   placeholder='City'
                   value={formData.city}
-                  onChange={(e) => handleFormChange('city', e.target.value)}
+                  onChange={(e) => handleFormChange('City', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='number'
                   placeholder='Price'
                   value={formData.price}
-                  onChange={(e) => handleFormChange('price', e.target.value)}
+                  onChange={(e) => handleFormChange('Price', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='number'
                   placeholder='Bedrooms'
                   value={formData.bedrooms}
-                  onChange={(e) => handleFormChange('bedrooms', e.target.value)}
+                  onChange={(e) => handleFormChange('Bedrooms', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
@@ -432,7 +443,7 @@ const HouseRatingSystem = () => {
                   placeholder='Bathrooms'
                   value={formData.bathrooms}
                   onChange={(e) =>
-                    handleFormChange('bathrooms', e.target.value)
+                    handleFormChange('Bathrooms', e.target.value)
                   }
                   className='px-3 py-2 border rounded'
                 />
@@ -440,14 +451,14 @@ const HouseRatingSystem = () => {
                   type='number'
                   placeholder='Size (sqft)'
                   value={formData.size}
-                  onChange={(e) => handleFormChange('size', e.target.value)}
+                  onChange={(e) => handleFormChange('Size', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='text'
                   placeholder='Style'
                   value={formData.style}
-                  onChange={(e) => handleFormChange('style', e.target.value)}
+                  onChange={(e) => handleFormChange('Style', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
@@ -455,7 +466,7 @@ const HouseRatingSystem = () => {
                   placeholder='Year Built'
                   value={formData.year_built}
                   onChange={(e) =>
-                    handleFormChange('year_built', e.target.value)
+                    handleFormChange('Year Built', e.target.value)
                   }
                   className='px-3 py-2 border rounded'
                 />
@@ -464,7 +475,7 @@ const HouseRatingSystem = () => {
                   placeholder='Garage Spaces'
                   value={formData.garage_spaces}
                   onChange={(e) =>
-                    handleFormChange('garage_spaces', e.target.value)
+                    handleFormChange('Garage Spaces', e.target.value)
                   }
                   className='px-3 py-2 border rounded'
                 />
@@ -472,14 +483,19 @@ const HouseRatingSystem = () => {
                   type='number'
                   placeholder='HOA Fees'
                   value={formData.hoa_fee}
-                  onChange={(e) => handleFormChange('hoa_fee', e.target.value)}
+                  onChange={(e) => handleFormChange('HOA Fees', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='text'
                   placeholder='Distance (e.g., 15 min)'
                   value={formData.distance}
-                  onChange={(e) => handleFormChange('distance', e.target.value)}
+                  onChange={(e) =>
+                    handleFormChange(
+                      'Distance from Arcadia and Galacia',
+                      e.target.value
+                    )
+                  }
                   className='px-3 py-2 border rounded'
                 />
                 <div className='flex items-center gap-4 md:col-span-2'>
@@ -488,7 +504,7 @@ const HouseRatingSystem = () => {
                       type='checkbox'
                       checked={formData.walk_in_closet}
                       onChange={(e) =>
-                        handleFormChange('walk_in_closet', e.target.checked)
+                        handleFormChange('Walk in Closet?', e.target.checked)
                       }
                     />
                     Walk-in Closet
@@ -498,7 +514,10 @@ const HouseRatingSystem = () => {
                       type='checkbox'
                       checked={formData.kitchen_island}
                       onChange={(e) =>
-                        handleFormChange('kitchen_island', e.target.checked)
+                        handleFormChange(
+                          'Kitchen Island or Penisula?',
+                          e.target.checked
+                        )
                       }
                     />
                     Kitchen Island
@@ -508,7 +527,10 @@ const HouseRatingSystem = () => {
                       type='checkbox'
                       checked={formData.yard_maintenance}
                       onChange={(e) =>
-                        handleFormChange('yard_maintenance', e.target.checked)
+                        handleFormChange(
+                          'Yard with maintenance?',
+                          e.target.checked
+                        )
                       }
                     />
                     High Maintenance Yard
@@ -574,7 +596,7 @@ const HouseRatingSystem = () => {
                 </div>
                 <div>
                   <span className='font-semibold'>Beds/Baths:</span>{' '}
-                  {house.bedrooms} bed/{house.bathrooms} bath
+                  {house.bedrooms}/{house.bathrooms}
                 </div>
                 <div>
                   <span className='font-semibold'>Year:</span>{' '}
@@ -597,7 +619,7 @@ const HouseRatingSystem = () => {
               </div>
 
               <div className='flex gap-2 mt-3 flex-wrap'>
-                {house.price > budgetLimit && (
+                {(house.price || 0) > budgetLimit && (
                   <span className='px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-semibold'>
                     Over Budget
                   </span>
