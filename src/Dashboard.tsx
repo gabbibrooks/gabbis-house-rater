@@ -607,9 +607,7 @@ const HouseRatingSystem = () => {
                   {house.garage_spaces} spaces
                 </div>
                 <div>
-                  <span className='font-semibold'>
-                    Distance from Arcadia & Galacia:
-                  </span>{' '}
+                  <span className='font-semibold'>Distance from A & G:</span>{' '}
                   {house.distance || 'N/A'}
                 </div>
                 <div>
