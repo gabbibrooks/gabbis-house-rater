@@ -53,12 +53,17 @@ const HouseRatingSystem = () => {
   }
 
   const saveHouseToDB = async (house: House) => {
-    const { data } = await supabase.from('houses').insert(house).select()
-    if (data && data?.length > 0) {
-      setHouses((prev) => [...prev, data[0]])
-      return true
+    try {
+      const { data } = await supabase.from('houses').insert(house).select()
+      if (data && data?.length > 0) {
+        setHouses((prev) => [...prev, data[0]])
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('Error saving house to DB:', error)
+      return false
     }
-    return false
   }
 
   const updateHouseInDB = async (id: string, house: House) => {
@@ -414,28 +419,28 @@ const HouseRatingSystem = () => {
                   type='text'
                   placeholder='Address'
                   value={formData.address}
-                  onChange={(e) => handleFormChange('Address', e.target.value)}
+                  onChange={(e) => handleFormChange('address', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='text'
                   placeholder='City'
                   value={formData.city}
-                  onChange={(e) => handleFormChange('City', e.target.value)}
+                  onChange={(e) => handleFormChange('city', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='number'
                   placeholder='Price'
                   value={formData.price}
-                  onChange={(e) => handleFormChange('Price', e.target.value)}
+                  onChange={(e) => handleFormChange('price', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='number'
                   placeholder='Bedrooms'
                   value={formData.bedrooms}
-                  onChange={(e) => handleFormChange('Bedrooms', e.target.value)}
+                  onChange={(e) => handleFormChange('bedrooms', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
@@ -443,7 +448,7 @@ const HouseRatingSystem = () => {
                   placeholder='Bathrooms'
                   value={formData.bathrooms}
                   onChange={(e) =>
-                    handleFormChange('Bathrooms', e.target.value)
+                    handleFormChange('bathrooms', e.target.value)
                   }
                   className='px-3 py-2 border rounded'
                 />
@@ -451,14 +456,14 @@ const HouseRatingSystem = () => {
                   type='number'
                   placeholder='Size (sqft)'
                   value={formData.size}
-                  onChange={(e) => handleFormChange('Size', e.target.value)}
+                  onChange={(e) => handleFormChange('size', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='text'
                   placeholder='Style'
                   value={formData.style}
-                  onChange={(e) => handleFormChange('Style', e.target.value)}
+                  onChange={(e) => handleFormChange('style', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
@@ -466,7 +471,7 @@ const HouseRatingSystem = () => {
                   placeholder='Year Built'
                   value={formData.year_built}
                   onChange={(e) =>
-                    handleFormChange('Year Built', e.target.value)
+                    handleFormChange('year_built', e.target.value)
                   }
                   className='px-3 py-2 border rounded'
                 />
@@ -475,7 +480,7 @@ const HouseRatingSystem = () => {
                   placeholder='Garage Spaces'
                   value={formData.garage_spaces}
                   onChange={(e) =>
-                    handleFormChange('Garage Spaces', e.target.value)
+                    handleFormChange('garage_spaces', e.target.value)
                   }
                   className='px-3 py-2 border rounded'
                 />
@@ -483,19 +488,14 @@ const HouseRatingSystem = () => {
                   type='number'
                   placeholder='HOA Fees'
                   value={formData.hoa_fee}
-                  onChange={(e) => handleFormChange('HOA Fees', e.target.value)}
+                  onChange={(e) => handleFormChange('hoa_fee', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <input
                   type='text'
                   placeholder='Distance (e.g., 15 min)'
                   value={formData.distance}
-                  onChange={(e) =>
-                    handleFormChange(
-                      'Distance from Arcadia and Galacia',
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => handleFormChange('distance', e.target.value)}
                   className='px-3 py-2 border rounded'
                 />
                 <div className='flex items-center gap-4 md:col-span-2'>
@@ -504,7 +504,7 @@ const HouseRatingSystem = () => {
                       type='checkbox'
                       checked={formData.walk_in_closet}
                       onChange={(e) =>
-                        handleFormChange('Walk in Closet?', e.target.checked)
+                        handleFormChange('walk_in_closet', e.target.checked)
                       }
                     />
                     Walk-in Closet
@@ -514,10 +514,7 @@ const HouseRatingSystem = () => {
                       type='checkbox'
                       checked={formData.kitchen_island}
                       onChange={(e) =>
-                        handleFormChange(
-                          'Kitchen Island or Penisula?',
-                          e.target.checked
-                        )
+                        handleFormChange('kitchen_island', e.target.checked)
                       }
                     />
                     Kitchen Island
@@ -527,10 +524,7 @@ const HouseRatingSystem = () => {
                       type='checkbox'
                       checked={formData.yard_maintenance}
                       onChange={(e) =>
-                        handleFormChange(
-                          'Yard with maintenance?',
-                          e.target.checked
-                        )
+                        handleFormChange('yard_maintenance', e.target.checked)
                       }
                     />
                     High Maintenance Yard
@@ -596,7 +590,7 @@ const HouseRatingSystem = () => {
                 </div>
                 <div>
                   <span className='font-semibold'>Beds/Baths:</span>{' '}
-                  {house.bedrooms}/{house.bathrooms}
+                  {house.bedrooms} bed / {house.bathrooms} bath
                 </div>
                 <div>
                   <span className='font-semibold'>Year:</span>{' '}
