@@ -23,7 +23,7 @@ const HouseRatingSystem = () => {
   const [uploadError, setUploadError] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingHouse, setEditingHouse] = useState<House | null>(null)
-  const [budgetLimit, setBudgetLimit] = useState(60000)
+  const [budgetLimit, setBudgetLimit] = useState(600000)
 
   const emptyHouse = {
     id: uuidV4(),
