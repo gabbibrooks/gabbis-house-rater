@@ -1,5 +1,15 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Home, Settings, Plus, Edit2, Trash2, X, Upload } from 'lucide-react'
+import {
+  Home,
+  Settings,
+  Plus,
+  Edit2,
+  Trash2,
+  X,
+  Upload,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react'
 import Papa from 'papaparse'
 import { supabase } from './utils/supabase'
 import type { House } from './types/house'
@@ -24,6 +34,7 @@ const HouseRatingSystem = () => {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingHouse, setEditingHouse] = useState<House | null>(null)
   const [budgetLimit, setBudgetLimit] = useState(600000)
+  const [isSettingsCollapsed, setIsSettingsCollapsed] = useState(true)
 
   const emptyHouse = {
     id: uuidV4(),
@@ -210,7 +221,7 @@ const HouseRatingSystem = () => {
         }
         return 0
       })
-  }, [houses, weights, sortBy])
+  }, [houses, sortBy, weights])
 
   const handleWeightChange = (key: string, value: string) => {
     setWeights((prev) => ({ ...prev, [key]: parseFloat(value) }))
@@ -317,49 +328,72 @@ const HouseRatingSystem = () => {
             </div>
           </div>
 
-          <div className='flex items-center gap-2 mb-4'>
-            <Settings className='w-5 h-5 text-gray-600' />
-            <h2 className='text-xl font-semibold text-gray-700'>
-              Adjust Weights
-            </h2>
-          </div>
-
-          <div className='grid md:grid-cols-3 gap-4 mb-6'>
-            {Object.entries(weights).map(([key, value]) => (
-              <div key={key} className='bg-gray-50 p-3 rounded'>
-                <label className='block text-sm font-medium text-gray-700 mb-2 capitalize'>
-                  {key.replace(/([A-Z])/g, ' $1').trim()}: {value}
-                </label>
-                <input
-                  type='range'
-                  min='0'
-                  max='10'
-                  step='1'
-                  value={value}
-                  onChange={(e) => handleWeightChange(key, e.target.value)}
-                  className='w-full'
-                />
+          <div className='mb-6 border border-gray-200 rounded-lg'>
+            <button
+              onClick={() => setIsSettingsCollapsed(!isSettingsCollapsed)}
+              className='w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors'>
+              <div className='flex items-center gap-2'>
+                <Settings className='w-5 h-5 text-gray-600' />
+                <h2 className='text-xl font-semibold text-gray-700'>
+                  Adjust Weights & Budget
+                </h2>
               </div>
-            ))}
-          </div>
+              {isSettingsCollapsed ? (
+                <ChevronDown className='w-5 h-5 text-gray-600' />
+              ) : (
+                <ChevronUp className='w-5 h-5 text-gray-600' />
+              )}
+            </button>
 
-          <div className='mb-6 p-4 bg-gray-50 rounded-lg'>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Budget Limit: ${budgetLimit.toLocaleString()}
-            </label>
-            <input
-              type='range'
-              min='400000'
-              max='700000'
-              step='5000'
-              value={budgetLimit}
-              onChange={(e) => setBudgetLimit(parseInt(e.target.value))}
-              className='w-full'
-            />
-            <div className='flex justify-between text-xs text-gray-500 mt-1'>
-              <span>$400k</span>
-              <span>$700k</span>
-            </div>
+            {!isSettingsCollapsed && (
+              <div className='p-4'>
+                <h3 className='text-sm font-semibold text-gray-700 mb-3'>
+                  Feature Weights
+                </h3>
+                <div className='grid md:grid-cols-3 gap-4 mb-6'>
+                  {Object.entries(weights).map(([key, value]) => (
+                    <div key={key} className='bg-gray-50 p-3 rounded'>
+                      <label className='block text-sm font-medium text-gray-700 mb-2 capitalize'>
+                        {key.replace(/([A-Z])/g, ' $1').trim()}: {value}
+                      </label>
+                      <input
+                        type='range'
+                        min='0'
+                        max='10'
+                        step='1'
+                        value={value}
+                        onChange={(e) =>
+                          handleWeightChange(key, e.target.value)
+                        }
+                        className='w-full'
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <h3 className='text-sm font-semibold text-gray-700 mb-3'>
+                  Budget Limit
+                </h3>
+                <div className='p-4 bg-gray-50 rounded-lg'>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Maximum Price: ${budgetLimit.toLocaleString()}
+                  </label>
+                  <input
+                    type='range'
+                    min='400000'
+                    max='700000'
+                    step='5000'
+                    value={budgetLimit}
+                    onChange={(e) => setBudgetLimit(parseInt(e.target.value))}
+                    className='w-full'
+                  />
+                  <div className='flex justify-between text-xs text-gray-500 mt-1'>
+                    <span>$400k</span>
+                    <span>$700k</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className='flex gap-2 mb-4 flex-wrap'>
