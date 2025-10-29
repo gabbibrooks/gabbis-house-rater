@@ -8,7 +8,8 @@ import {
   X,
   Upload,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Search
 } from 'lucide-react'
 import Papa from 'papaparse'
 import { supabase } from './utils/supabase'
@@ -35,6 +36,7 @@ const HouseRatingSystem = () => {
   const [editingHouse, setEditingHouse] = useState<House | null>(null)
   const [budgetLimit, setBudgetLimit] = useState(600000)
   const [isSettingsCollapsed, setIsSettingsCollapsed] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const emptyHouse = {
     id: uuidV4(),
@@ -51,7 +53,8 @@ const HouseRatingSystem = () => {
     kitchen_island: false,
     yard_maintenance: false,
     hoa_fee: 0,
-    distance: ''
+    distance: '',
+    calculated_score: 0
   } as House
 
   const [formData, setFormData] = useState(emptyHouse)
@@ -65,7 +68,7 @@ const HouseRatingSystem = () => {
 
   const saveHouseToDB = async (house: House) => {
     try {
-      const { data } = await supabase.from('houses').insert(house).select()
+      const { data } = await supabase.from('houses').insert(house).select('*')
       if (data && data?.length > 0) {
         setHouses((prev) => [...prev, data[0]])
         return true
@@ -82,7 +85,7 @@ const HouseRatingSystem = () => {
       .from('houses')
       .update(house)
       .eq('id', id)
-      .select()
+      .select('*')
     if (data && data?.length > 0) {
       setHouses((prev) => prev.map((h) => (h.id === id ? data[0] : h)))
       return true
@@ -91,7 +94,11 @@ const HouseRatingSystem = () => {
   }
 
   const deleteHouseFromDB = async (id: string) => {
-    const { data } = await supabase.from('houses').delete().eq('id', id)
+    const { data } = await supabase
+      .from('houses')
+      .delete()
+      .eq('id', id)
+      .select('*')
     if (data !== null) {
       setHouses((prev) => prev.filter((h) => h.id !== id))
       return true
@@ -206,10 +213,19 @@ const HouseRatingSystem = () => {
     return houses
       .map((house) => ({
         ...house,
-        calculatedScore: calculateScore(house)
+        calculated_score: calculateScore(house)
       }))
+      .filter((house) => {
+        if (!searchTerm) return true
+        const search = searchTerm.toLowerCase()
+        return (
+          house.address?.toLowerCase().includes(search) ||
+          house.city?.toLowerCase().includes(search) ||
+          house.style?.toLowerCase().includes(search)
+        )
+      })
       .sort((a, b) => {
-        if (sortBy === 'score') return b.calculatedScore - a.calculatedScore
+        if (sortBy === 'score') return b.calculated_score - a.calculated_score
         if (sortBy === 'price') return a?.price - b?.price
         if (sortBy === 'distance') {
           const getDistance = (h: House) => {
@@ -221,7 +237,7 @@ const HouseRatingSystem = () => {
         }
         return 0
       })
-  }, [houses, sortBy, weights])
+  }, [houses, sortBy, weights, searchTerm])
 
   const handleWeightChange = (key: string, value: string) => {
     setWeights((prev) => ({ ...prev, [key]: parseFloat(value) }))
@@ -314,7 +330,7 @@ const HouseRatingSystem = () => {
               </div>
               <div className='text-2xl font-bold text-green-900'>
                 {scoredHouses.length > 0
-                  ? scoredHouses[0].calculatedScore.toFixed(1)
+                  ? scoredHouses[0].calculated_score.toFixed(1)
                   : 0}
               </div>
             </div>
@@ -396,6 +412,19 @@ const HouseRatingSystem = () => {
             )}
           </div>
 
+          <div className='mb-4'>
+            <div className='relative'>
+              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400' />
+              <input
+                type='text'
+                placeholder='Search by address, city, or style...'
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+              />
+            </div>
+          </div>
+
           <div className='flex gap-2 mb-4 flex-wrap'>
             <button
               onClick={() => {
@@ -433,142 +462,178 @@ const HouseRatingSystem = () => {
           </div>
 
           {showAddForm && (
-            <div className='mb-6 p-6 bg-blue-50 rounded-lg border-2 border-blue-200'>
-              <div className='flex justify-between items-center mb-4'>
-                <h3 className='text-lg font-semibold'>
-                  {editingHouse ? 'Edit House' : 'Add New House'}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowAddForm(false)
-                    setEditingHouse(null)
-                    setFormData(emptyHouse)
-                  }}
-                  className='text-gray-500 hover:text-gray-700'>
-                  <X className='w-5 h-5' />
-                </button>
-              </div>
-              <div className='grid md:grid-cols-2 gap-4'>
-                <input
-                  type='text'
-                  placeholder='Address'
-                  value={formData.address}
-                  onChange={(e) => handleFormChange('address', e.target.value)}
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='text'
-                  placeholder='City'
-                  value={formData.city}
-                  onChange={(e) => handleFormChange('city', e.target.value)}
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='number'
-                  placeholder='Price'
-                  value={formData.price}
-                  onChange={(e) => handleFormChange('price', e.target.value)}
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='number'
-                  placeholder='Bedrooms'
-                  value={formData.bedrooms}
-                  onChange={(e) => handleFormChange('bedrooms', e.target.value)}
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='number'
-                  placeholder='Bathrooms'
-                  value={formData.bathrooms}
-                  onChange={(e) =>
-                    handleFormChange('bathrooms', e.target.value)
-                  }
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='number'
-                  placeholder='Size (sqft)'
-                  value={formData.size}
-                  onChange={(e) => handleFormChange('size', e.target.value)}
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='text'
-                  placeholder='Style'
-                  value={formData.style}
-                  onChange={(e) => handleFormChange('style', e.target.value)}
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='number'
-                  placeholder='Year Built'
-                  value={formData.year_built}
-                  onChange={(e) =>
-                    handleFormChange('year_built', e.target.value)
-                  }
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='number'
-                  placeholder='Garage Spaces'
-                  value={formData.garage_spaces}
-                  onChange={(e) =>
-                    handleFormChange('garage_spaces', e.target.value)
-                  }
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='number'
-                  placeholder='HOA Fees'
-                  value={formData.hoa_fee}
-                  onChange={(e) => handleFormChange('hoa_fee', e.target.value)}
-                  className='px-3 py-2 border rounded'
-                />
-                <input
-                  type='text'
-                  placeholder='Distance (e.g., 15 min)'
-                  value={formData.distance}
-                  onChange={(e) => handleFormChange('distance', e.target.value)}
-                  className='px-3 py-2 border rounded'
-                />
-                <div className='flex items-center gap-4 md:col-span-2'>
-                  <label className='flex items-center gap-2'>
-                    <input
-                      type='checkbox'
-                      checked={formData.walk_in_closet}
-                      onChange={(e) =>
-                        handleFormChange('walk_in_closet', e.target.checked)
-                      }
-                    />
-                    Walk-in Closet
-                  </label>
-                  <label className='flex items-center gap-2'>
-                    <input
-                      type='checkbox'
-                      checked={formData.kitchen_island}
-                      onChange={(e) =>
-                        handleFormChange('kitchen_island', e.target.checked)
-                      }
-                    />
-                    Kitchen Island
-                  </label>
-                  <label className='flex items-center gap-2'>
-                    <input
-                      type='checkbox'
-                      checked={formData.yard_maintenance}
-                      onChange={(e) =>
-                        handleFormChange('yard_maintenance', e.target.checked)
-                      }
-                    />
-                    High Maintenance Yard
-                  </label>
+            <div className='fixed inset-0 z-50 flex items-center justify-center p-4'>
+              <div className='fixed inset-0 bg-black/75 z-40 backdrop-blur-sm' />
+              <div className='bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto z-50'>
+                <div className='sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-center'>
+                  <h3 className='text-lg sm:text-xl font-semibold text-gray-800'>
+                    {editingHouse ? 'Edit House' : 'Add New House'}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowAddForm(false)
+                      setEditingHouse(null)
+                      setFormData(emptyHouse)
+                    }}
+                    className='text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors'>
+                    <X className='w-5 h-5' />
+                  </button>
                 </div>
-                <button
-                  onClick={handleSubmit}
-                  className='md:col-span-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700'>
-                  {editingHouse ? 'Update House' : 'Add House'}
-                </button>
+
+                <div className='p-4 sm:p-6'>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                    <input
+                      type='text'
+                      placeholder='Address'
+                      value={formData.address}
+                      onChange={(e) =>
+                        handleFormChange('address', e.target.value)
+                      }
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='text'
+                      placeholder='City'
+                      value={formData.city}
+                      onChange={(e) => handleFormChange('city', e.target.value)}
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='number'
+                      placeholder='Price'
+                      value={formData.price}
+                      onChange={(e) =>
+                        handleFormChange('price', e.target.value)
+                      }
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='number'
+                      placeholder='Bedrooms'
+                      value={formData.bedrooms}
+                      onChange={(e) =>
+                        handleFormChange('bedrooms', e.target.value)
+                      }
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='number'
+                      placeholder='Bathrooms'
+                      value={formData.bathrooms}
+                      onChange={(e) =>
+                        handleFormChange('bathrooms', e.target.value)
+                      }
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='number'
+                      placeholder='Size (sqft)'
+                      value={formData.size}
+                      onChange={(e) => handleFormChange('size', e.target.value)}
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='text'
+                      placeholder='Style'
+                      value={formData.style}
+                      onChange={(e) =>
+                        handleFormChange('style', e.target.value)
+                      }
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='number'
+                      placeholder='Year Built'
+                      value={formData.year_built}
+                      onChange={(e) =>
+                        handleFormChange('year_built', e.target.value)
+                      }
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='number'
+                      placeholder='Garage Spaces'
+                      value={formData.garage_spaces}
+                      onChange={(e) =>
+                        handleFormChange('garage_spaces', e.target.value)
+                      }
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='number'
+                      placeholder='HOA Fees'
+                      value={formData.hoa_fee}
+                      onChange={(e) =>
+                        handleFormChange('hoa_fee', e.target.value)
+                      }
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='text'
+                      placeholder='Distance (e.g., 15 min)'
+                      value={formData.distance}
+                      onChange={(e) =>
+                        handleFormChange('distance', e.target.value)
+                      }
+                      className='sm:col-span-2 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <div className='sm:col-span-2 flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 bg-gray-50 rounded'>
+                      <label className='flex items-center gap-2 cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          checked={formData.walk_in_closet}
+                          onChange={(e) =>
+                            handleFormChange('walk_in_closet', e.target.checked)
+                          }
+                          className='w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500'
+                        />
+                        <span className='text-sm'>Walk-in Closet</span>
+                      </label>
+                      <label className='flex items-center gap-2 cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          checked={formData.kitchen_island}
+                          onChange={(e) =>
+                            handleFormChange('kitchen_island', e.target.checked)
+                          }
+                          className='w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500'
+                        />
+                        <span className='text-sm'>Kitchen Island</span>
+                      </label>
+                      <label className='flex items-center gap-2 cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          checked={formData.yard_maintenance}
+                          onChange={(e) =>
+                            handleFormChange(
+                              'yard_maintenance',
+                              e.target.checked
+                            )
+                          }
+                          className='w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500'
+                        />
+                        <span className='text-sm'>High Maintenance Yard</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className='mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end'>
+                    <button
+                      onClick={() => {
+                        setShowAddForm(false)
+                        setEditingHouse(null)
+                        setFormData(emptyHouse)
+                      }}
+                      className='px-6 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors'>
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      className='px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors'>
+                      {editingHouse ? 'Update House' : 'Add House'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -597,7 +662,7 @@ const HouseRatingSystem = () => {
                 <div className='flex items-center gap-3'>
                   <div className='text-right'>
                     <div className='text-2xl font-bold text-indigo-600'>
-                      {house.calculatedScore.toFixed(1)}
+                      {house.calculated_score.toFixed(1)}
                     </div>
                     <div className='text-xs text-gray-500'>Score</div>
                   </div>
