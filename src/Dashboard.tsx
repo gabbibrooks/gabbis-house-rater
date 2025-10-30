@@ -370,7 +370,7 @@ const HouseRatingSystem = () => {
             {!isSettingsCollapsed && (
               <div className='p-4'>
                 <h3 className='text-sm font-semibold text-gray-700 mb-3'>
-                  Feature Weights
+                  Feature Weights (0-10 higher is more important)
                 </h3>
                 <div className='grid md:grid-cols-3 gap-4 mb-6'>
                   {Object.entries(weights).map(([key, value]) => (
