@@ -15,4 +15,5 @@ export interface House {
   hoa_fee: number
   distance: string
   calculated_score: number
+  sold: boolean
 }

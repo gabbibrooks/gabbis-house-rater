@@ -52,6 +52,7 @@ const HouseRatingSystem = () => {
     walk_in_closet: false,
     kitchen_island: false,
     yard_maintenance: false,
+    sold: false,
     hoa_fee: 0,
     distance: '',
     calculated_score: 0
@@ -225,6 +226,11 @@ const HouseRatingSystem = () => {
         )
       })
       .sort((a, b) => {
+        if (sortBy === 'sold') {
+          if (a.sold === b.sold) return 0
+          if (a.sold) return 1
+          return -1
+        }
         if (sortBy === 'score') return b.calculated_score - a.calculated_score
         if (sortBy === 'price') return a?.price - b?.price
         if (sortBy === 'distance') {
@@ -459,6 +465,13 @@ const HouseRatingSystem = () => {
               }`}>
               Sort by Distance
             </button>
+            <button
+              onClick={() => setSortBy('sold')}
+              className={`px-4 py-2 rounded ${
+                sortBy === 'sold' ? 'bg-indigo-600 text-white' : 'bg-gray-200'
+              }`}>
+              Sort by Availability
+            </button>
           </div>
 
           {showAddForm && (
@@ -614,6 +627,17 @@ const HouseRatingSystem = () => {
                         />
                         <span className='text-sm'>High Maintenance Yard</span>
                       </label>
+                      <label className='flex items-center gap-2 cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          checked={formData.sold}
+                          onChange={(e) =>
+                            handleFormChange('sold', e.target.checked)
+                          }
+                          className='w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500'
+                        />
+                        <span className='text-sm'>Sold</span>
+                      </label>
                     </div>
                   </div>
 
@@ -728,6 +752,11 @@ const HouseRatingSystem = () => {
                 {!house.yard_maintenance && (
                   <span className='px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded'>
                     Low/No Yard
+                  </span>
+                )}
+                {house.sold && (
+                  <span className='px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded'>
+                    Sold
                   </span>
                 )}
               </div>
