@@ -16,4 +16,5 @@ export interface House {
   distance: string
   calculated_score: number
   sold: boolean
+  thumbnail_url?: string
 }

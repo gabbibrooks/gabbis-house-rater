@@ -55,7 +55,8 @@ const HouseRatingSystem = () => {
     sold: false,
     hoa_fee: 0,
     distance: '',
-    calculated_score: 0
+    calculated_score: 0,
+    thumbnail_url: ''
   } as House
 
   const [formData, setFormData] = useState(emptyHouse)
@@ -71,7 +72,7 @@ const HouseRatingSystem = () => {
     try {
       const { data } = await supabase.from('houses').insert(house).select('*')
       if (data && data?.length > 0) {
-        setHouses((prev) => [...prev, data[0]])
+        setHouses(data)
         return true
       }
       return false
@@ -588,7 +589,16 @@ const HouseRatingSystem = () => {
                       onChange={(e) =>
                         handleFormChange('distance', e.target.value)
                       }
-                      className='sm:col-span-2 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
+                    />
+                    <input
+                      type='text'
+                      placeholder='Thumbnail Image URL (optional)'
+                      value={formData.thumbnail_url}
+                      onChange={(e) =>
+                        handleFormChange('thumbnail_url', e.target.value)
+                      }
+                      className='px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
                     />
                     <div className='sm:col-span-2 flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 bg-gray-50 rounded'>
                       <label className='flex items-center gap-2 cursor-pointer'>
@@ -667,98 +677,117 @@ const HouseRatingSystem = () => {
           {scoredHouses.map((house, idx) => (
             <div
               key={idx}
-              className='bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow'>
-              <div className='flex justify-between items-start mb-3'>
-                <div className='flex-1'>
-                  <a
-                    href={`https://www.zillow.com/homes/${encodeURIComponent(
-                      house.address
-                    )}`}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='text-lg font-bold text-indigo-600 hover:text-indigo-800 hover:underline'>
-                    {house.address}
-                  </a>
-                  <p className='text-sm text-gray-600'>
-                    {house.city} • {house.style}
-                  </p>
-                </div>
-                <div className='flex items-center gap-3'>
-                  <div className='text-right'>
-                    <div className='text-2xl font-bold text-indigo-600'>
-                      {house.calculated_score.toFixed(1)}
-                    </div>
-                    <div className='text-xs text-gray-500'>Score</div>
+              className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'>
+              <div className='grid grid-cols-1 md:grid-cols-4 gap-4 w-full'>
+                {house.thumbnail_url && (
+                  <div className='w-full h-49 bg-gray-200 col-span-1'>
+                    <img
+                      src={house.thumbnail_url}
+                      alt={house.address}
+                      className='w-full h-full object-cover'
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
                   </div>
-                  <button
-                    onClick={() => handleEdit(house)}
-                    className='p-2 text-blue-600 hover:bg-blue-50 rounded'>
-                    <Edit2 className='w-4 h-4' />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(house)}
-                    className='p-2 text-red-600 hover:bg-red-50 rounded'>
-                    <Trash2 className='w-4 h-4' />
-                  </button>
-                </div>
-              </div>
+                )}
+                <div className='p-4 md:p-6 w-full col-span-1 md:col-span-3'>
+                  <div className='flex justify-between items-start mb-3'>
+                    <div className='flex-1'>
+                      <a
+                        href={`https://www.zillow.com/homes/${encodeURIComponent(
+                          house.address
+                        )}`}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-lg font-bold text-indigo-600 hover:text-indigo-800 hover:underline'>
+                        {house.address}
+                      </a>
+                      <p className='text-sm text-gray-600'>
+                        {house.city} • {house.style}
+                      </p>
+                    </div>
+                    <div className='flex items-center gap-3'>
+                      <div className='text-right'>
+                        <div className='text-2xl font-bold text-indigo-600'>
+                          {house.calculated_score.toFixed(1)}
+                        </div>
+                        <div className='text-xs text-gray-500'>Score</div>
+                      </div>
+                      <button
+                        onClick={() => handleEdit(house)}
+                        className='p-2 text-blue-600 hover:bg-blue-50 rounded'>
+                        <Edit2 className='w-4 h-4' />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(house)}
+                        className='p-2 text-red-600 hover:bg-red-50 rounded'>
+                        <Trash2 className='w-4 h-4' />
+                      </button>
+                    </div>
+                  </div>
 
-              <div className='grid grid-cols-2 md:grid-cols-4 gap-3 text-sm'>
-                <div>
-                  <span className='font-semibold'>Price:</span> $
-                  {(house.price || 0).toLocaleString()}
-                </div>
-                <div>
-                  <span className='font-semibold'>Size:</span> {house.size} sqft
-                </div>
-                <div>
-                  <span className='font-semibold'>Beds/Baths:</span>{' '}
-                  {house.bedrooms} bed / {house.bathrooms} bath
-                </div>
-                <div>
-                  <span className='font-semibold'>Year:</span>{' '}
-                  {house.year_built}
-                </div>
-                <div>
-                  <span className='font-semibold'>Garage:</span>{' '}
-                  {house.garage_spaces} spaces
-                </div>
-                <div>
-                  <span className='font-semibold'>Distance from A & G:</span>{' '}
-                  {house.distance || 'N/A'}
-                </div>
-                <div>
-                  <span className='font-semibold'>HOA:</span> $
-                  {house.hoa_fee || 0}/mo
-                </div>
-              </div>
+                  <div className='grid grid-cols-2 md:grid-cols-4 gap-3 text-sm'>
+                    <div>
+                      <span className='font-semibold'>Price:</span> $
+                      {(house.price || 0).toLocaleString()}
+                    </div>
+                    <div>
+                      <span className='font-semibold'>Size:</span> {house.size}{' '}
+                      sqft
+                    </div>
+                    <div>
+                      <span className='font-semibold'>Beds/Baths:</span>{' '}
+                      {house.bedrooms} bed / {house.bathrooms} bath
+                    </div>
+                    <div>
+                      <span className='font-semibold'>Year:</span>{' '}
+                      {house.year_built}
+                    </div>
+                    <div>
+                      <span className='font-semibold'>Garage:</span>{' '}
+                      {house.garage_spaces} spaces
+                    </div>
+                    <div>
+                      <span className='font-semibold'>
+                        Distance from A & G:
+                      </span>{' '}
+                      {house.distance || 'N/A'}
+                    </div>
+                    <div>
+                      <span className='font-semibold'>HOA:</span> $
+                      {house.hoa_fee || 0}/mo
+                    </div>
+                  </div>
 
-              <div className='flex gap-2 mt-3 flex-wrap'>
-                {(house.price || 0) > budgetLimit && (
-                  <span className='px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-semibold'>
-                    Over Budget
-                  </span>
-                )}
-                {house.walk_in_closet && (
-                  <span className='px-2 py-1 bg-green-100 text-green-700 text-xs rounded'>
-                    Walk-in Closet
-                  </span>
-                )}
-                {house.kitchen_island && (
-                  <span className='px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded'>
-                    Kitchen Island
-                  </span>
-                )}
-                {!house.yard_maintenance && (
-                  <span className='px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded'>
-                    Low/No Yard
-                  </span>
-                )}
-                {house.sold && (
-                  <span className='px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded'>
-                    Sold
-                  </span>
-                )}
+                  <div className='flex gap-2 mt-3 flex-wrap'>
+                    {(house.price || 0) > budgetLimit && (
+                      <span className='px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-semibold'>
+                        Over Budget
+                      </span>
+                    )}
+                    {house.walk_in_closet && (
+                      <span className='px-2 py-1 bg-green-100 text-green-700 text-xs rounded'>
+                        Walk-in Closet
+                      </span>
+                    )}
+                    {house.kitchen_island && (
+                      <span className='px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded'>
+                        Kitchen Island
+                      </span>
+                    )}
+                    {!house.yard_maintenance && (
+                      <span className='px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded'>
+                        Low/No Yard
+                      </span>
+                    )}
+                    {house.sold && (
+                      <span className='px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded font-semibold'>
+                        Sold
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           ))}
