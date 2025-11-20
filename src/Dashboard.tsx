@@ -72,7 +72,7 @@ const HouseRatingSystem = () => {
     try {
       const { data } = await supabase.from('houses').insert(house).select('*')
       if (data && data?.length > 0) {
-        setHouses(data)
+        setHouses((prev) => [...prev, ...data])
         return true
       }
       return false
@@ -266,7 +266,6 @@ const HouseRatingSystem = () => {
       setEditingHouse(null)
     } else {
       await saveHouseToDB(formData)
-      setHouses((prev) => [...prev, { ...formData }])
     }
 
     const newEmptyHouse = { ...emptyHouse, id: uuidV4() }
